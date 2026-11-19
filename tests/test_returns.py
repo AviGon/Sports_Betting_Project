@@ -40,6 +40,17 @@ def test_seed_determinism_and_mc_average():
     assert r["simulation_sd_roi"] == pytest.approx(r["theoretical_sd_roi"], rel=.03)
 
 
+def test_market_simulations_do_not_use_historical_outcomes_or_estimated_ev():
+    m = matches()
+    bets = home_baseline(m)
+    _, original = simulate(m, bets, n_paths=2000, seed=11)
+    m["outcome"] = ["A", "H", "D"]
+    changed = home_baseline(m)
+    changed["estimated_ev"] = 999.
+    _, altered = simulate(m, changed, n_paths=2000, seed=11)
+    np.testing.assert_array_equal(original, altered)
+
+
 def test_duplicates_unknown_ids_missing_odds_and_inconsistent_returns():
     m = matches()
     bets = home_baseline(m)

@@ -3,6 +3,8 @@
   "n_matches": 4180,
   "n_paths": 10000,
   "seed": 225,
+  "date_min": "2015-08-08",
+  "date_max": "2026-05-24",
   "expected_roi": -0.042944769733642356,
   "observed_roi": -0.0388133971291866,
   "simulation_mean_roi": -0.04282808301435406,

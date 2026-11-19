@@ -95,6 +95,7 @@ def simulate(matches, bets, n_paths=10000, seed=225, batch_size=256):
     percentile = 100*((paths < observed-1e-14).sum()+.5*equal)/n_paths
     upper_p = (1+(paths >= observed).sum())/(n_paths+1)
     result = {"n_bets": n_bets, "n_matches": len(selected), "n_paths": n_paths, "seed": seed,
+              "date_min": str(selected.date.min()), "date_max": str(selected.date.max()),
               "expected_roi": float(expected_roi), "observed_roi": float(observed),
               "simulation_mean_roi": float(paths.mean()), "simulation_sd_roi": float(paths.std(ddof=1)),
               "theoretical_sd_roi": float(np.sqrt(max(0., variance_roi))),
@@ -116,7 +117,7 @@ def figure(result, paths, path):
     ax.set(title="Fixed selections under simulated market outcomes", xlabel="Net return / total unit stakes (%)",
            ylabel="Probability density (per percentage point)")
     ax.legend(fontsize=8)
-    fig.text(.5, .02, f"EPL 2015–16 to 2025–26 · {result['n_bets']:,} unit bets · {result['n_paths']:,} paths · seed {result['seed']} · independent matches", ha="center", fontsize=8)
+    fig.text(.5, .02, f"EPL {result['date_min']} to {result['date_max']} · {result['n_bets']:,} unit bets · {result['n_paths']:,} paths · seed {result['seed']}", ha="center", fontsize=8)
     fig.tight_layout(rect=(0, .06, 1, 1))
     fig.savefig(path)
     plt.close(fig)

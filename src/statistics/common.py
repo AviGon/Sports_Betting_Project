@@ -12,7 +12,7 @@ SIDE_CODES = np.array(["H", "D", "A"])
 
 def probabilities(values):
     p = np.asarray(values, dtype=float)
-    if p.ndim != 2 or p.shape[1] != 3 or not np.isfinite(p).all() or (p <= 0).any() or (p >= 1).any() or not np.allclose(p.sum(axis=1), 1):
+    if p.ndim != 2 or p.shape[1] != 3 or not len(p) or not np.isfinite(p).all() or (p <= 0).any() or (p >= 1).any() or not np.allclose(p.sum(axis=1), 1):
         raise ValueError("Expected positive n by 3 probabilities summing to 1")
     return p
 

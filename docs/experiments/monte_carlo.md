@@ -15,6 +15,7 @@ An observed high return is compared to the null distribution with upper-tail Mon
 ## Computed results
 
 - Fixed unit bets: 4,180 across 4,180 matches.
+- Selected match dates: 2015-08-08 through 2026-05-24.
 - Simulation paths: 10,000; NumPy default_rng seed: 225.
 - Market-null expected ROI: **-4.294%**.
 - Observed historical ROI: **-3.881%**.

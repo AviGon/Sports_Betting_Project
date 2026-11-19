@@ -96,6 +96,21 @@ def clean_season(raw, season):
         out = out.drop_duplicates(key)
     out["match_id"] = out.apply(lambda r: "epl_" + hashlib.sha256(f"{r.season}|{r.home_team}|{r.away_team}".encode()).hexdigest()[:20], axis=1)
     out[PROBS] = devig(out[ODDS])
+    # Standardize consensus names across the BetBrain and later Avg schemas.
+    # Missing complete triplets remain missing; never mix bookmakers or timing.
+    for label, prefixes in (("consensus_opening", ("Avg", "BbAv")),
+                            ("consensus_closing", ("AvgC",)),
+                            ("b365_closing", ("B365C",))):
+        prefix = next((v for v in prefixes if all(f"raw_{v}{s}" in out for s in "HDA")), None)
+        columns = [f"odds_{label}_{s}" for s in SIDES]
+        optional = out[[f"raw_{prefix}{s}" for s in "HDA"]].to_numpy(float) if prefix else np.full((len(out), 3), np.nan)
+        out[columns] = optional
+        out[f"{label}_source"] = prefix if prefix else pd.NA
+        complete = np.isfinite(optional).all(axis=1) & (optional > 1).all(axis=1)
+        probs = np.full_like(optional, np.nan)
+        if complete.any():
+            probs[complete] = devig(optional[complete])
+        out[[f"p_{label}_{s}" for s in SIDES]] = probs
     out[["home_goals", "away_goals"]] = out[["home_goals", "away_goals"]].astype(int)
     return out, excluded, sorted(kept)
 
@@ -168,7 +183,7 @@ def build(root=Path("."), download=False):
     for s in audits:
         lines.append(f"- {s['season']}: {s['included_rows']}/380 included; {s['date_min']} to {s['date_max']}; {len(s['source_columns'])} source columns; {s['missing_kickoff']} missing kickoff times; {s['excluded_rows']} exclusions.")
     lines += ["", "## Decisions", "", "Bet365 non-C 1X2 quotes define the primary market. They are the provider's pre-closing/opening snapshot, not verified first-ever quotes or a uniform lead time. Pre-2019 separate closing quotes are generally unavailable. No fallback bookmaker is substituted for missing Bet365 odds.",
-              "", "Preserve every recognized H/D/A odds triplet under raw_<source header>, including other bookmakers, averages, maxima and closing quotes. Invalid optional odds become missing. Avg* is the provider's arithmetic odds average, not an average of de-vigged probabilities. Max* combines bookmakers and is not one bookmaker's executable triplet. Exchange quotes omit commission. Missing optional columns stay missing, never imputed.",
+              "", "Preserve every recognized H/D/A odds triplet under raw_<source header>, including other bookmakers, averages, maxima and closing quotes. Standardized odds_consensus_opening_* uses Avg* or the older BbAv* source; odds_consensus_closing_* uses AvgC*; odds_b365_closing_* uses B365C*. Each group records its source prefix and optional de-vigged probabilities only for complete valid triplets. Invalid optional odds become missing. Avg* is the provider's arithmetic odds average, not an average of de-vigged probabilities. Max* combines bookmakers and is not one bookmaker's executable triplet. Exchange quotes omit commission. Missing optional columns stay missing, never imputed.",
               "", "Dates use explicit day/month/year formats. The 2019–20 season window extends through August 2020 to retain COVID-postponed July fixtures. Kickoff times are unzoned provider wall-clock strings; absent times remain missing. Date ties use available time and then match ID; unknown intraday order is not inferred. There are no post-match statistics in the processed features, but goals/outcome are target labels and closing quotes must not enter an opening-price strategy.",
               "", "Team aliases are defined in src/data/prepare.py. Match IDs hash season and canonical home/away teams, remaining stable under fixture rescheduling. Exact duplicate fixtures are removed; conflicting duplicates raise an error. Invalid core fields, missing/invalid Bet365 odds and inconsistent results are excluded with a single first-failure reason and source row in exclusions.csv. All season row counts reconcile to the manifest.",
               "", "Raw downloads are cached and ignored by Git. dataset_manifest.json records URLs, content SHA256, download provenance where known, full observed schemas, missing counts and exclusions. An offline rebuild uses the cache. Refreshing mutable provider files may change data; compare hashes. Source: https://www.football-data.co.uk/englandm.php and https://www.football-data.co.uk/notes.txt.",

@@ -8,7 +8,7 @@
     "matplotlib": "3.11.2",
     "pytest": "9.2.0"
   },
-  "input_sha256": "3c9f6811c290be36aeb9641f93bb2bdffb870ec062e9b7e878528b09abb6305b",
+  "input_sha256": "20694f2dfc0c5c3c52128e1709e03f90ed0b888a360bfb6bf5b5bb22ded8dd52",
   "arguments": {
     "only": "all",
     "bets": null,

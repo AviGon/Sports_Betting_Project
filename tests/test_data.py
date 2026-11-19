@@ -68,6 +68,28 @@ def test_covid_delayed_season_and_invalid_dates():
     assert len(out) == 1 and excluded[0]["reason"] == "invalid_date"
 
 
+def test_consensus_schema_standardization_and_missing_closing():
+    raw = fixture()
+    raw[["BbAvH", "BbAvD", "BbAvA"]] = [[2., 4., 4.], [3., 3., 3.]]
+    a, _, _ = clean_season(raw, "2015-16")
+    assert a.consensus_opening_source.eq("BbAv").all()
+    assert a.odds_consensus_closing_home.isna().all()
+    assert a.p_consensus_closing_home.isna().all()
+    np.testing.assert_allclose(a[["p_consensus_opening_home", "p_consensus_opening_draw", "p_consensus_opening_away"]].sum(axis=1), 1)
+    raw = raw.rename(columns={"BbAvH": "AvgH", "BbAvD": "AvgD", "BbAvA": "AvgA"})
+    b, _, _ = clean_season(raw, "2015-16")
+    np.testing.assert_allclose(a.odds_consensus_opening_home, b.odds_consensus_opening_home)
+
+
+def test_incomplete_optional_triplet_is_not_imputed():
+    raw = fixture()
+    raw[["AvgCH", "AvgCD", "AvgCA"]] = [[2., np.nan, 4.], [3., 3., 3.]]
+    out, excluded, _ = clean_season(raw, "2015-16")
+    assert len(out) == 2 and not excluded
+    assert out.loc[0, ["p_consensus_closing_home", "p_consensus_closing_draw", "p_consensus_closing_away"]].isna().all()
+    assert out.loc[1, ["p_consensus_closing_home", "p_consensus_closing_draw", "p_consensus_closing_away"]].sum() == pytest.approx(1)
+
+
 def test_empirical_dataset_contract():
     path = Path("data/processed/epl_matches.csv")
     if not path.exists():

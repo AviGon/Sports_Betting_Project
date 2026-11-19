@@ -8,7 +8,7 @@ Completed checks:
 
 - `.venv/bin/python -m src.data.prepare`: 4,180 matches, eleven completed seasons, zero excluded rows. A second cached rebuild reproduced the same processed data contract.
 - `.venv/bin/python -m src.statistics.run`: all four experiments and four bootstrap methods ran against the actual dataset. Outputs include four inspected 300-dpi figures, result JSON, simulation paths, fixed baseline selections, documentation and a 420-word report contribution.
-- `.venv/bin/python -m pytest -q`: **25 tests passed**. Tests cover actual-data invariants and missing-data accounting, synthetic cleaning edge cases, duplicate conflicts, de-vigging, proper scores, BH correction, cluster uncertainty, joint categorical settlement, known ROI, deterministic seeds, theoretical versus simulated moments, no outcome/estimated-EV leakage into null simulations, clustered return resampling and power validation.
+- `.venv/bin/python -m pytest -q`: **27 tests passed**. Tests cover actual-data invariants and missing-data accounting, synthetic cleaning edge cases, duplicate conflicts, consensus schema standardization, incomplete optional quote groups, de-vigging, proper scores, BH correction, cluster uncertainty, joint categorical settlement, known ROI, deterministic seeds, theoretical versus simulated moments, no outcome/estimated-EV leakage into null simulations, clustered return resampling and power validation.
 - `.venv/bin/python -m compileall -q src`: passed.
 - `git diff --check`: passed.
 - Imported-selection CLI smoke checks: Monte Carlo and bootstrap accepted the generated baseline CSV through the external interface with 2,000 draws; observed/expected ROI matched the internal baseline. Temporary imported-result copies were removed afterwards.

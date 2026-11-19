@@ -1,0 +1,61 @@
+{
+  "strategy": "home_baseline",
+  "intervals": [
+    {
+      "method": "ordinary",
+      "n_units": 4180,
+      "n_bets": 4180,
+      "n_paths": 5000,
+      "seed": 226,
+      "observed_roi": -0.0388133971291866,
+      "confidence_level": 0.95,
+      "ci": [
+        -0.08086728468899522,
+        0.0025193779904305828
+      ],
+      "few_clusters": false
+    },
+    {
+      "method": "match",
+      "n_units": 4180,
+      "n_bets": 4180,
+      "n_paths": 5000,
+      "seed": 226,
+      "observed_roi": -0.0388133971291866,
+      "confidence_level": 0.95,
+      "ci": [
+        -0.08109898325358852,
+        0.004816686602870804
+      ],
+      "few_clusters": false
+    },
+    {
+      "method": "date",
+      "n_units": 1252,
+      "n_bets": 4180,
+      "n_paths": 5000,
+      "seed": 226,
+      "observed_roi": -0.0388133971291866,
+      "confidence_level": 0.95,
+      "ci": [
+        -0.08073834645288604,
+        0.0026807686653955677
+      ],
+      "few_clusters": false
+    },
+    {
+      "method": "season",
+      "n_units": 11,
+      "n_bets": 4180,
+      "n_paths": 5000,
+      "seed": 226,
+      "observed_roi": -0.0388133971291866,
+      "confidence_level": 0.95,
+      "ci": [
+        -0.09339952153110048,
+        0.014993660287081323
+      ],
+      "few_clusters": true
+    }
+  ]
+}

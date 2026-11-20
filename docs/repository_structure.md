@@ -10,7 +10,7 @@
 - `tests/`: dataset validation (`test_data.py`), Track A tests (`test_poisson.py`, `test_track_a_evaluation.py`) and Track B tests (`test_calibration.py`, `test_mispricing.py`, `test_power.py`, `test_returns.py`).
 - `docs/track_a.md`: Track A protocol, mathematics, results and limitations.
 - `docs/experiments/`: Track B assumptions, methods, computed results and limitations.
-- `reports/track_a/`: Track A results and figures; `reports/track_a_report.md`: Track A contribution draft.
+- `reports/track_a/`: Track A results and figures.
 - `reports/figures/`, `reports/results/`: Track B figures and machine-readable summaries; `reports/ksheer_report.md`: Track B contribution draft.
 
 Each track writes only to its own paths, so rerunning one never overwrites the other's outputs.

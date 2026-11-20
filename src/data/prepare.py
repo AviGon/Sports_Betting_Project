@@ -150,7 +150,7 @@ def build(root=Path("."), download=False):
             if b"FTHG" not in content[:4096]:
                 raise ValueError(f"Not a match CSV: {url}")
             path.write_bytes(content)
-            meta_path.write_text(json.dumps({"downloaded_at_utc": datetime.now(timezone.utc).isoformat()}, indent=2))
+            meta_path.write_text(json.dumps({"downloaded_at_utc": datetime.now(timezone.utc).isoformat()}, indent=2), encoding="utf-8")
         raw = pd.read_csv(path, encoding="utf-8-sig")
         clean, excluded, kept = clean_season(raw, season)
         # Fail closed: default dataset consists of completed 20-team seasons only.
@@ -160,7 +160,7 @@ def build(root=Path("."), download=False):
         frames.append(clean)
         exclusions.extend(excluded)
         audits.append({"season": season, "url": url, "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                       "retrieval": json.loads(meta_path.read_text()) if meta_path.exists() else {"downloaded_at_utc": "unknown (pre-existing cache)"},
+                       "retrieval": json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {"downloaded_at_utc": "unknown (pre-existing cache)"},
                        "source_rows": len(raw.dropna(how="all")), "included_rows": len(clean),
                        "excluded_rows": len(excluded), "date_min": str(clean.date.min().date()), "date_max": str(clean.date.max().date()),
                        "source_columns": list(raw.columns), "retained_odds_columns": kept,
@@ -174,7 +174,7 @@ def build(root=Path("."), download=False):
     dest.mkdir(parents=True, exist_ok=True)
     df.to_csv(dest / "epl_matches.csv", index=False, date_format="%Y-%m-%d", float_format="%.12g")
     audit = {"seasons": audits, "exclusions": exclusions, "rows": len(df), "partial_2026_27_included": False}
-    (dest / "dataset_manifest.json").write_text(json.dumps(audit, indent=2) + "\n")
+    (dest / "dataset_manifest.json").write_text(json.dumps(audit, indent=2) + "\n", encoding="utf-8")
     pd.DataFrame(exclusions, columns=["season", "source_row", "reason"]).to_csv(dest / "exclusions.csv", index=False)
     docs = root / "docs"
     docs.mkdir(exist_ok=True)
@@ -188,7 +188,7 @@ def build(root=Path("."), download=False):
               "", "Team aliases are defined in src/data/prepare.py. Match IDs hash season and canonical home/away teams, remaining stable under fixture rescheduling. Exact duplicate fixtures are removed; conflicting duplicates raise an error. Invalid core fields, missing/invalid Bet365 odds and inconsistent results are excluded with a single first-failure reason and source row in exclusions.csv. All season row counts reconcile to the manifest.",
               "", "Raw downloads are cached and ignored by Git. dataset_manifest.json records URLs, content SHA256, download provenance where known, full observed schemas, missing counts and exclusions. An offline rebuild uses the cache. Refreshing mutable provider files may change data; compare hashes. Source: https://www.football-data.co.uk/englandm.php and https://www.football-data.co.uk/notes.txt.",
               "", f"Total excluded source rows: {len(exclusions)}. See data/processed/exclusions.csv for the complete ledger."]
-    (docs / "dataset_audit.md").write_text("\n".join(lines) + "\n")
+    (docs / "dataset_audit.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote {len(df)} matches; excluded {len(exclusions)} rows")
     return df
 

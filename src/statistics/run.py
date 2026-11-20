@@ -12,7 +12,7 @@ from src.statistics import bootstrap, calibration, mispricing, monte_carlo, powe
 
 
 def write_json(path, result):
-    path.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
+    path.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
 def calibration_doc(r):
@@ -61,14 +61,14 @@ def main():
         r = calibration.analyze(df)
         write_json(results / "calibration.json", r)
         calibration.figure(r, figures / "calibration.png")
-        (docs / "calibration.md").write_text(calibration_doc(r))
+        (docs / "calibration.md").write_text(calibration_doc(r), encoding="utf-8")
         print(f"Calibration: Brier={r['brier_score']:.6f}; log loss={r['log_loss']:.6f}")
     if args.only in ("mispricing", "all"):
         r = mispricing.analyze(df)
         write_json(results / "mispricing.json", r)
         pd.DataFrame(r["tests"]).to_csv(results / "mispricing_tests.csv", index=False)
         mispricing.figure(r, figures / "mispricing.png")
-        (docs / "mispricing.md").write_text(mispricing_doc(r))
+        (docs / "mispricing.md").write_text(mispricing_doc(r), encoding="utf-8")
         print(f"Mispricing: {r['n_rejected_bh']} / {r['n_tests']} BH rejections")
     label = "imported" if args.bets else "home_baseline"
     suffix = "_imported" if args.bets else ""
@@ -83,19 +83,19 @@ def main():
         write_json(results / f"monte_carlo{suffix}.json", r)
         pd.DataFrame({"roi": paths}).to_csv(results / f"monte_carlo_paths{suffix}.csv", index=False)
         monte_carlo.figure(r, paths, figures / f"monte_carlo{suffix}.png")
-        (docs / f"monte_carlo{suffix}.md").write_text(monte_carlo_doc(r))
+        (docs / f"monte_carlo{suffix}.md").write_text(monte_carlo_doc(r), encoding="utf-8")
         print(f"Monte Carlo ({label}): observed={r['observed_roi']:.4%}; expected={r['expected_roi']:.4%}")
     if args.only in ("bootstrap", "all"):
         r = {"strategy": label, "intervals": [bootstrap.confidence_interval(df, bets, method=m,
              n_paths=args.bootstrap_paths, seed=args.seed+1)[0] for m in ("ordinary", "match", "date", "season")]}
         write_json(results / f"bootstrap{suffix}.json", r)
-        (docs / f"bootstrap{suffix}.md").write_text(bootstrap_doc(r))
+        (docs / f"bootstrap{suffix}.md").write_text(bootstrap_doc(r), encoding="utf-8")
         print(f"Bootstrap ({label}): four resampling units")
     if args.only in ("power", "all"):
         r = power.analyze(df, args.power_paths, args.seed+2)
         write_json(results / "power.json", r)
         power.figure(r, figures / "power_curve.png")
-        (docs / "statistical_power.md").write_text(power_doc(r))
+        (docs / "statistical_power.md").write_text(power_doc(r), encoding="utf-8")
         print("Power: " + "; ".join(f"{x['edge']:.0%}: n80={x['required_n_80']}" for x in r["rows"]))
     import importlib.metadata
     metadata = {"python": platform.python_version(), "platform": platform.platform(),
@@ -104,7 +104,7 @@ def main():
                 "arguments": {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()}}
     write_json(results / f"run_metadata{suffix}.json", metadata)
     if args.only == "all" and not args.bets:
-        (Path("reports") / "ksheer_report.md").write_text(report_draft(results))
+        (Path("reports") / "ksheer_report.md").write_text(report_draft(results), encoding="utf-8")
 
 
 def mispricing_doc(r):
@@ -225,7 +225,7 @@ Monte Carlo validation uses {r['n_paths']:,} independent experiments per point, 
 
 
 def report_draft(results):
-    c, m, mc, b, p = [json.loads((results / f"{name}.json").read_text()) for name in ("calibration", "mispricing", "monte_carlo", "bootstrap", "power")]
+    c, m, mc, b, p = [json.loads((results / f"{name}.json").read_text(encoding="utf-8")) for name in ("calibration", "mispricing", "monte_carlo", "bootstrap", "power")]
     power_rows = "; ".join(f"{x['edge']:.0%}: {x['required_n_80']:,}" for x in p["rows"] if x["required_n_80"])
     date_ci = next(x["ci"] for x in b["intervals"] if x["method"] == "date")
     return f"""# Ksheer's report contribution (integration draft)

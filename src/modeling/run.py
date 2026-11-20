@@ -184,14 +184,14 @@ def main(argv=None):
     matches = load_matches()
     cfg_path = res_dir / "poisson_config.json"
     if args.skip_tuning and cfg_path.exists():
-        cfg = PoissonConfig(**json.loads(cfg_path.read_text())["config"])
+        cfg = PoissonConfig(**json.loads(cfg_path.read_text(encoding="utf-8"))["config"])
         print(f"A1: reusing {cfg}")
     else:
         print("A1: tuning Poisson hyperparameters on train seasons", TRAIN)
         cfg, tuning = tune_hyperparameters(matches)
         tuning.to_csv(res_dir / "hyperparameter_search.csv", index=False)
         cfg_path.write_text(json.dumps({"config": cfg.__dict__, "selected_on": list(TRAIN),
-                                        "criterion": "mean log loss"}, indent=2))
+                                        "criterion": "mean log loss"}, indent=2), encoding="utf-8")
         print(f"A1: selected {cfg}")
 
     print("A1: walk-forward predictions for", TRAIN[0], "to", TEST[-1])
@@ -210,14 +210,14 @@ def main(argv=None):
     test = df[df.season.isin(TEST)]
     cal = pd.concat([calibration_table(test, f) for f in ("poisson", "market")])
     cal.to_csv(res_dir / "calibration_test.csv", index=False)
-    (res_dir / "model_evaluation.json").write_text(json.dumps(evaluation, indent=2))
+    (res_dir / "model_evaluation.json").write_text(json.dumps(evaluation, indent=2), encoding="utf-8")
 
     print("A3: choosing EV threshold on validation seasons", VALIDATION)
     val = df[df.season.isin(VALIDATION)]
     tau, grid_val = bt.choose_threshold(val, n_boot=args.boot, seed=args.seed)
     (res_dir / "threshold_lock.json").write_text(json.dumps(
         {"tau": tau, "grid": list(bt.TAU_GRID), "min_validation_bets": bt.MIN_VALIDATION_BETS,
-         "rule": "max validation ROI, ties -> smaller tau", "selected_on": list(VALIDATION)}, indent=2))
+         "rule": "max validation ROI, ties -> smaller tau", "selected_on": list(VALIDATION)}, indent=2), encoding="utf-8")
     print(f"A3: locked tau = {tau}")
     val_bets = bt.select_bets(val, tau)
     test_bets = bt.select_bets(test, tau)
@@ -234,7 +234,7 @@ def main(argv=None):
         "threshold_grid_validation": grid_val.to_dict(orient="records"),
         "threshold_grid_test_exploratory": grid_test.to_dict(orient="records"),
     }
-    (res_dir / "backtest.json").write_text(json.dumps(backtest, indent=2, default=float))
+    (res_dir / "backtest.json").write_text(json.dumps(backtest, indent=2, default=float), encoding="utf-8")
     bt.selection_export(test_bets).to_csv(res_dir / "selections_test.csv", index=False, float_format="%.6f")
     bt.selection_export(val_bets).to_csv(res_dir / "selections_validation.csv", index=False, float_format="%.6f")
 
@@ -248,7 +248,7 @@ def main(argv=None):
         "bootstrap_resamples": args.boot, "python": sys.version.split()[0], "platform": platform.platform(),
         "numpy": np.__version__, "pandas": pd.__version__,
         "splits": {"train": TRAIN, "validation": VALIDATION, "test": TEST},
-    }, indent=2))
+    }, indent=2), encoding="utf-8")
 
     t = evaluation["test"]
     print(json.dumps({"test_scores": t["scores"],

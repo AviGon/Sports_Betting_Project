@@ -1,0 +1,15 @@
+{
+  "config": {
+    "xi": 0.002,
+    "ridge": 2.0,
+    "window_days": 1095,
+    "promoted_prior": true
+  },
+  "selected_on": [
+    "2016-17",
+    "2017-18",
+    "2018-19",
+    "2019-20"
+  ],
+  "criterion": "mean log loss"
+}

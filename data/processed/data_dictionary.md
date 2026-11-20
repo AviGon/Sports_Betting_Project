@@ -10,6 +10,10 @@ One row per completed EPL match, 2015–16 through 2025–26. Read with pandas; 
 - `outcome`: H/D/A, target label consistent with full-time goals.
 - `odds_home`, `odds_draw`, `odds_away`: raw Bet365 pre-closing decimal odds (source B365H/D/A); >1. Use these for settlement, never reciprocal normalized probabilities.
 - `p_market_home`, `p_market_draw`, `p_market_away`: reciprocal Bet365 odds divided by their row sum. Positive and sum to 1; these are a market null model, not known true probabilities.
+- `odds_consensus_opening_<side>`: standardized provider average pre-closing odds (AvgH/D/A, or older BbAvH/D/A). `consensus_opening_source` names the source prefix used in that season. Side is home/draw/away. These arithmetic average odds are not necessarily executable offers.
+- `odds_consensus_closing_<side>`: standardized provider average closing odds (AvgCH/D/A), with `consensus_closing_source`; missing where unavailable.
+- `odds_b365_closing_<side>`: Bet365 closing quotes (B365CH/D/A), with `b365_closing_source`; missing where unavailable.
+- `p_consensus_opening_<side>`, `p_consensus_closing_<side>`, `p_b365_closing_<side>`: multiplicatively de-vigged probabilities for the corresponding optional odds group, calculated only when all three quotes are finite and >1. No outcome labels enter construction. Closing groups are unavailable at opening time and must not enter opening-price predictive features.
 - `raw_<header>`: optional numeric decimal 1X2 quotes under original source names. Suffix H/D/A identifies outcome; an immediately preceding C marks closing (e.g. B365CH). Avg, Max and older BbAv/BbMx identify provider aggregates. PS is Pinnacle; other prefixes retain the provider's naming. Check dataset_manifest.json for actual per-season schemas. No missing quotes are imputed. Exchange values do not account for commission.
 
 Do not pass goals, outcome or future closing quotes into predictive features. Opening snapshots are not guaranteed available at a common lead time; same-day ordering is not guaranteed when time is absent. Person A owns chronological feature construction, model fitting and backtests.

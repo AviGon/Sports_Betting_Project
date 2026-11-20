@@ -9,3 +9,5 @@ Person A reads `data/processed/epl_matches.csv`, joins on `match_id` and uses H/
 Reproduce with `python3 -m venv .venv`, `.venv/bin/python -m pip install -r requirements-lock.txt`, `.venv/bin/python -m src.data.prepare`, `.venv/bin/python -m pytest -q`. First build downloads missing files; repeat builds use local caches. Refresh with `--download`; compare manifest hashes.
 
 Milestone validation: **7 tests passed**, including actual-data contract validation, probability construction, invalid data, duplicate/conflicting fixtures, alias/date normalization, COVID postponements and outcome-independence of market probabilities. Dataset work is committed before implementing experiments.
+
+An additive follow-up standardizes consensus pre-closing odds across the older BbAv and later Avg schemas, plus available consensus/Bet365 closing quotes. These groups retain source-prefix labels and have optional normalized probabilities only for complete valid triplets. The original required core fields and all 4,180 fixtures are unchanged. The final full suite has 27 passing tests.

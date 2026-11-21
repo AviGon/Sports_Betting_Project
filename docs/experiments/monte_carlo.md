@@ -1,4 +1,4 @@
-# B3 — Monte Carlo: luck versus skill
+# Monte Carlo: luck versus skill
 
 Question: could the fixed bet list's realized return arise from randomness under de-vigged market probabilities?
 

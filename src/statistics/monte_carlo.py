@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from src.data.prepare import PROBS
-from src.statistics.common import SIDE_CODES, one_hot, probabilities
+from src.statistics.common import SIDE_CODES, probabilities
 
 BET_FIELDS = ["match_id", "selected_side", "odds", "estimated_ev", "realized_return"]
 

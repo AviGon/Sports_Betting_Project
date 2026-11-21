@@ -1,4 +1,4 @@
-"""Experiment A3: value-betting backtest.
+"""Chronological value-betting backtest.
 
 Selection rule (fixed before looking at test returns):
 
@@ -88,19 +88,20 @@ def choose_threshold(validation: pd.DataFrame, grid=TAU_GRID, min_bets=MIN_VALID
 
     Ties go to the smaller threshold (more bets). Only validation rows are ever passed in.
     """
+    candidates = [(tau, select_bets(validation, tau)) for tau in grid]
+    if not any(len(bets) >= min_bets for _, bets in candidates):
+        raise ValueError("No threshold meets the minimum validation bet count")
     rows = []
-    for tau in grid:
-        s = summarise(select_bets(validation, tau), n_boot, seed)
+    for tau, bets in candidates:
+        s = summarise(bets, n_boot, seed)
         rows.append({"tau": tau, **{k: s.get(k) for k in ("n_bets", "roi", "roi_ci95", "profit_units",
                                                           "market_null_expected_roi")}})
     table = pd.DataFrame(rows)
     eligible = table[table["n_bets"] >= min_bets]
-    if eligible.empty:
-        eligible = table
     best = eligible.sort_values(["roi", "tau"], ascending=[False, True]).iloc[0]
     return float(best["tau"]), table
 
 
 def selection_export(bets: pd.DataFrame) -> pd.DataFrame:
-    """Columns Track B's ``--bets`` import expects (plus model_probability)."""
+    """Shared return-inference import columns, plus model_probability."""
     return bets[SELECTION_COLUMNS].copy()

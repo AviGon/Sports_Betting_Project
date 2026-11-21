@@ -1,4 +1,4 @@
-name: Shared data and statistical unit tests
+name: Data, modeling and statistics tests
 on: [push, pull_request]
 jobs:
   test:

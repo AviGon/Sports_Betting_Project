@@ -1,1 +1,1 @@
-"""Track A: Poisson match model, prediction comparison and value-betting backtest."""
+"""Poisson match model, forecast comparison and chronological betting backtest."""

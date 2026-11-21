@@ -1,75 +1,61 @@
-# Sports Betting Project — ECE 225A
+# EPL Betting Market Analysis
 
-**Can we beat the bookmakers?** Can statistical models identify profitable inefficiencies in EPL betting markets, and can observed effects be distinguished from randomness?
+**Research question:** Can statistical models identify profitable inefficiencies in English Premier League betting markets, and can the observed effects be distinguished from randomness?
 
-- **Track A (Person A, Avinash Gondela):** Poisson goals model, forecast comparison against bookmaker probabilities, chronological value-betting backtest. Code in `src/modeling/`; see [docs/track_a.md](docs/track_a.md).
-- **Track B (Person B, Ksheer):** shared data preparation, market calibration, mispricing tests, Monte Carlo and power analysis. Code in `src/statistics/`; see [docs/experiments/](docs/experiments/).
+## Data and methodology
 
-See [repository structure](docs/repository_structure.md).
+Both pipelines read the same versioned [EPL dataset](data/processed/epl_matches.csv): **4,180 completed matches**, 380 per season from 2015–16 through 2025–26. Partial 2026–27 is excluded. The [dataset audit](docs/dataset_audit.md) records schema differences, exclusions and source provenance; the [dictionary](data/processed/data_dictionary.md) specifies the shared contract.
 
-## Setup
+Bet365 pre-closing decimal odds are retained for settlement. Market probabilities are multiplicatively de-vigged: `p_k = (1/o_k) / sum_j(1/o_j)`. The independent Poisson goals model uses time decay, ridge shrinkage and a promoted-team prior. It refits using only strictly earlier match dates; same-day results never enter predictions. Closing quotes are excluded from the modeling loader.
 
-Dataset build and Track B were tested with Python 3.14.4; Track A was tested with Python 3.10.4. `requirements-lock.txt` pins the exact environment used for Track B's committed outputs; use that file instead of `requirements.txt` to reproduce those dependency versions on a compatible Python/platform.
+The chronological protocol uses 2015–16 as burn-in, 2016–17 through 2019–20 for choosing Poisson hyperparameters, 2020–21 through 2021–22 for choosing the betting threshold, and 2022–23 through 2025–26 for testing. Past test-period matches may update later forecasts, but hyperparameters and the threshold remain fixed. The selected values are decay **0.002/day**, ridge **2**, and threshold **0.025**. At most one unit bet is placed per fixture, on the side with largest `p_poisson * odds - 1` above the threshold.
+
+Forecasts are compared with bookmaker probabilities and expanding historical outcome frequencies using unscaled multiclass Brier score and natural-log loss. Paired score differences and betting ROI use whole-ISO-week percentile bootstrap intervals. Paired p-values use a null-centered bootstrap, with BH correction across the six score comparisons per split; training and validation comparisons are descriptive after model/threshold selection. Forecast calibration intervals also resample whole weeks.
+
+Market calibration and mispricing diagnostics use all eleven seasons, with season-cluster inference and one BH family covering 28 probability-band, outcome and team tests. Fixed-selection Monte Carlo draws **one categorical outcome per match**, settling all bets on that fixture jointly. Historical bootstrap intervals resample observed returns and answer a different question from market-null outcome simulations. The existing power analysis considers hypothetical advantages under a break-even null, not discovered profitable strategies.
+
+## Reproduced experimental results
+
+- **Held-out forecasts, 1,520 matches:** Brier scores are naive **0.645617**, Poisson **0.586231**, market **0.574199**; log losses are **1.067452**, **0.983642**, **0.966169** respectively. Poisson minus market Brier difference is **0.012032**, with a pointwise weekly-bootstrap 95% CI of **[0.006854, 0.017406]**.
+- **Held-out value betting:** **1,154 bets**, profit **−96.10 units**, ROI **−8.3276%**, weekly-bootstrap 95% CI **[−18.1548%, 2.2586%]**. Market-null expected ROI is **−5.1507%**. Validation ROI was **9.4236%** on 609 bets and was used to select the threshold; it is not held-out evidence of profitability.
+- **Held-out return uncertainty:** 10,000 market-null paths give a central 95% ROI interval **[−15.3565%, 5.5598%]**, observed-return percentile **28.05**, and upper-tail Monte Carlo p **0.7195**. The date-block historical bootstrap 95% CI is **[−18.5245%, 2.4468%]**. The different intervals use different null models/resampling units and are not contradictory. The season bootstrap has only **four** test-season blocks and is too fragile for a strong significance conclusion.
+- **Full-period market diagnostics:** Brier **0.568975**, log loss **0.960206**; **0 of 28** mispricing tests survive BH at 5%. The always-home benchmark returns **−3.8813%**, versus a market-null expectation of **−4.2945%**.
+- **Hypothetical power:** approximate independent-bet counts for 80% power at one-sided 5% significance are **119,546** for 1% expected ROI, **29,969** for 2%, **13,356** for 3%, and **4,834** for 5%. Monte Carlo validates these designs. No finite sample reaches 80% power at a true 0% edge.
+
+These results do not demonstrate a profitable strategy or prove market efficiency. The model assigns positive estimated EV to selections that lose historically. Conditional market-null simulations do not establish the true outcome probabilities.
+
+## Project structure
+
+- `src/data/`: shared data preparation, validation and portable fingerprints.
+- `src/modeling/`: Poisson fitting, chronological forecasts, forecast comparison and betting backtest.
+- `src/statistics/`: calibration, mispricing, categorical simulations, historical bootstrap and power.
+- `data/processed/`: shared CSV, dictionary, provenance manifest and exclusions. `data/raw/` is an ignored download cache.
+- `reports/modeling/results/` and `reports/modeling/figures/`: frozen modeling choices, predictions, betting selections, comparisons and figures.
+- `reports/results/` and `reports/figures/`: full-period statistics and benchmarks; `_poisson_test` identifies held-out selection inference.
+- `docs/experiments/`: [modeling protocol](docs/experiments/modeling.md), [market calibration](docs/experiments/calibration.md), [mispricing tests](docs/experiments/mispricing.md), [Monte Carlo](docs/experiments/monte_carlo.md), [bootstrap](docs/experiments/bootstrap.md) and [power](docs/experiments/statistical_power.md). Held-out [Monte Carlo](docs/experiments/monte_carlo_poisson_test.md) and [bootstrap](docs/experiments/bootstrap_poisson_test.md) details are recorded separately from the baseline.
+- `tests/`: numerical, leakage, dataset and cross-pipeline consistency tests. See [verification notes](docs/validation.md).
+
+## Reproducibility
+
+Run from the repository root. Requires Python **3.11+**; the combined pipelines were verified with Python **3.14.4**. The lock file pins the dependency versions used for the reproduced outputs on a compatible platform.
 
 ```sh
 python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt   # Windows: .venv\Scripts\python
+.venv/bin/python -m pip install -r requirements-lock.txt
 .venv/bin/python -m pytest -q
-```
-
-## Reproduce the shared dataset
-
-Requires internet access on the first data build.
-
-```sh
-.venv/bin/python -m src.data.prepare
-```
-
-Use `--download` to refresh sources; otherwise preparation reuses ignored `data/raw/` caches. Source hashes and schemas are in `data/processed/dataset_manifest.json`. The default covers only completed seasons 2015–16 through 2025–26 and fails if a requested season is incomplete. Partial 2026–27 is excluded.
-
-The input is [epl_matches.csv](data/processed/epl_matches.csv); join by `match_id`. See the [dictionary](data/processed/data_dictionary.md), [audit](docs/dataset_audit.md) and downstream selection interface in the dictionary. Unit stakes and net returns are used throughout. Odds and normalized market probabilities are separate; use raw decimal odds for profits.
-
-## Reproduce Track A
-
-```sh
-.venv/bin/python -m src.modeling.run                 # tune on 2016–20, lock τ on 2020–22, test on 2022–26
-.venv/bin/python -m src.modeling.run --skip-tuning   # reuse saved Poisson hyperparameters
-```
-
-Outputs go to `reports/track_a/`:
-
-| File | Content |
-|---|---|
-| `results/predictions.csv` | `match_id, lambda_home, lambda_away, p_poisson_home, p_poisson_draw, p_poisson_away` (walk-forward, 2016–17 onward) |
-| `results/selections_test.csv` | Test-season bets in the Track B import schema: `match_id, selected_side, model_probability, odds, estimated_ev, realized_return` |
-| `results/selections_validation.csv` | Same format, validation seasons |
-| `results/model_evaluation.json` | Brier / log-loss scores and paired bootstrap CIs per split and season |
-| `results/backtest.json` | Locked τ, ROI, bootstrap CI, market-null expected ROI, threshold sensitivity |
-| `results/poisson_config.json`, `threshold_lock.json` | Frozen choices made before the test evaluation |
-| `figures/a2_forecast_scores.png`, `a2_calibration_test.png`, `a3_backtest.png` | Report figures |
-
-Headline (test seasons 2022–26): the bookmaker beats the Poisson model (Brier 0.574 vs 0.586, difference 95% CI [0.007, 0.017]). The value-betting rule returns −8.3% per unit, 95% CI [−18.2%, +2.3%], which is consistent with no edge after the ≈5% margin.
-
-## Reproduce Track B (Ksheer's experiments)
-
-```sh
+.venv/bin/python -m src.modeling.run
 .venv/bin/python -m src.statistics.run
-.venv/bin/python -m pytest -q
+.venv/bin/python -m src.statistics.run --only returns --bets reports/modeling/results/selections_test.csv --label poisson_test
 ```
 
-The full run validates the versioned dataset, computes calibration and cluster-based mispricing tests, runs 10,000 categorical outcome simulations (seed 225), 5,000 historical bootstrap draws per resampling method (seed 226), and 4,000 power experiments per point (base seed 227). Outputs are deterministic for the pinned environment. No network is needed when using the committed processed CSV. Per-point seeds, dependency versions, input hash and run arguments are recorded under `reports/results/`.
+On Windows use `.venv\Scripts\python` in place of `.venv/bin/python`. To use compatible unpinned dependencies, install `requirements.txt`. The committed processed data supports all experiments offline. To rebuild it, run `.venv/bin/python -m src.data.prepare`; first use downloads missing CSVs from [football-data.co.uk](https://www.football-data.co.uk/englandm.php). `--download` refreshes cached sources and may change them, so compare manifest hashes before interpreting differences.
 
-Select a phase with `--only calibration`, `mispricing`, `monte-carlo`, `bootstrap` or `power`. Precision controls are `--paths`, `--bootstrap-paths` and `--power-paths` (all at least 2,000). `--seed` changes the base seed. The full run regenerates the [concise report contribution](reports/ksheer_report.md), [figures](reports/figures/) and [experiment methods/results](docs/experiments/).
+The modeling command reruns the declared training grid and validation rule; `--skip-tuning` reuses the saved Poisson configuration. Bootstrap defaults are 5,000 draws, seed 2025. Statistics defaults are 10,000 outcome paths (seed 225), 5,000 bootstrap draws (seed 226) and 4,000 power simulations per point (base seed 227). Select statistics with `--only calibration`, `mispricing`, `monte-carlo`, `bootstrap`, `returns` or `power`; precision controls are `--paths`, `--bootstrap-paths` and `--power-paths` (at least 2,000).
 
-The always-home baseline is a fixed independent benchmark. To analyze Track A's selections:
+Run metadata records dependencies, seeds, source hashes and arguments. `input_sha256` is the exact file-byte hash; `input_lf_sha256` normalizes CRLF to LF so Windows and Unix copies can be compared. CSV predictions retain full precision to reproduce recorded scores. Numerical optimizer/library differences can cause tiny floating-point changes without changing selections or conclusions.
 
-```sh
-.venv/bin/python -m src.statistics.run --only monte-carlo --bets reports/track_a/results/selections_test.csv
-.venv/bin/python -m src.statistics.run --only bootstrap --bets reports/track_a/results/selections_test.csv
-```
+Selection imports require `match_id, selected_side, odds, estimated_ev, realized_return`. Sides are H/D/A; stakes are one unit; odds must be finite decimal values >1; net return is `odds - 1` for a win and `-1` otherwise. The estimated-EV header is required but values may be blank. Unknown IDs, duplicate match/side rows, invalid quotes and inconsistent settlement are rejected. `--label poisson_test` keeps these outputs separate from the always-home benchmark. Reusing a label replaces its previous outputs. The pipelines regenerate scientific results, figures and experiment documentation; they do not generate a final report.
 
-Required CSV headers: `match_id, selected_side, odds, estimated_ev, realized_return`. H/D/A sides, finite decimal odds >1, one unit stake per row, net realized returns; `estimated_ev` may be blank. Unknown matches, missing odds, inconsistent settlement and duplicate match/side rows are rejected. Different sides of one fixture settle against one categorical match outcome in every simulation. Imported outputs have `_imported` suffixes and do not replace baseline outputs; a later import replaces earlier `_imported` results. Imported odds are supplied by Person A; their execution timing and out-of-sample selection validity remain their responsibility.
+## Assumptions and limits
 
-## Interpretation
-
-Track B's analyses are market diagnostics. De-vigged probabilities are an investigated null model. Mispricing tests use a single BH family, season-cluster uncertainty and date/BY sensitivities. Historical bootstrap intervals and market-null outcome intervals answer different questions. Power calculations construct hypothetical advantages under a break-even null; simulated positive edges are not evidence of profitable strategies. Details, actual numbers and limitations are in each experiment document.
+Pre-closing snapshots are not synchronized first-ever opening prices; execution, commission, stake limits and transaction costs are not modeled. Independent Poisson misses goal dependence and unobserved team information. Hyperparameter and threshold choices are fixed by the historical protocol, not an externally registered prospective study. ISO weeks approximate dependence blocks rather than official match rounds. Resampling assumes blocks are independent/exchangeable; only eleven seasons exist overall and four in the test sample. Pointwise confidence intervals are not simultaneous, BH relies on dependence assumptions, and failure to reject is not evidence of no effect. Strategy fitting/reselection uncertainty is not included in conditional bootstrap or Monte Carlo inference.

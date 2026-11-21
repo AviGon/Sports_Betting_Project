@@ -73,6 +73,8 @@ def test_market_null_ev_is_the_negative_margin():
 
 def test_threshold_choice_prefers_smaller_tau_on_ties():
     df = market_frame()
+    df.loc[1, "date"] = pd.Timestamp("2023-01-14")
+    df = add_derived(df)
     tau, table = choose_threshold(df, grid=(0.0, 0.05), min_bets=1, n_boot=50)
     assert tau == 0.0 and len(table) == 2
     assert summarise(select_bets(df, 0.0), 50)["n_bets"] == 2
@@ -83,5 +85,46 @@ def test_calibration_bins_cover_all_matches():
     p = rng.dirichlet([3, 2, 2], 500)
     df = pd.DataFrame(p, columns=["p_market_home", "p_market_draw", "p_market_away"])
     df["y"] = [rng.choice(3, p=row) for row in p]
+    df["matchday"] = np.arange(len(df)) // 5
     cal = calibration_table(df, "market")
     assert cal.groupby("side").n.sum().eq(500).all()
+
+
+def test_bootstrap_p_value_uses_null_centered_draws():
+    values = np.array([-1., -1., -1., 5.])
+    clusters = np.arange(4)
+    n_boot, seed = 4000, 8
+    draws = np.random.default_rng(seed).integers(0, 4, size=(n_boot, 4))
+    boot = values[draws].mean(axis=1)
+    expected = (1 + (abs(boot-values.mean()) >= abs(values.mean())).sum()) / (n_boot+1)
+    result = cluster_bootstrap_mean(values, clusters, n_boot, seed)
+    assert result["p_value_two_sided"] == pytest.approx(expected)
+    # The old sign-tail calculation gives a different answer for skewed returns.
+    assert abs(expected-2*min((boot <= 0).mean(), (boot >= 0).mean())) > .02
+
+
+def test_calibration_constant_forecasts_keep_every_match_and_cluster():
+    df = pd.DataFrame({"p_market_home": .5, "p_market_draw": .25, "p_market_away": .25,
+                       "y": np.repeat([0, 1, 2, 0, 1, 2], 10), "matchday": np.repeat(np.arange(6), 10)})
+    cal = calibration_table(df, "market", n_boot=2000, seed=2)
+    assert len(cal) == 3 and cal.n.eq(len(df)).all() and cal.n_clusters.eq(6).all()
+    # Repeated outcomes within weeks must not be counted as independent trials.
+    for row in cal.itertuples():
+        expected = cluster_bootstrap_mean((df.y == SIDES_INDEX[row.side]).astype(float), df.matchday, 2000, 2)
+        assert row.ci_low == expected["ci_low"] and row.ci_high == expected["ci_high"]
+
+
+SIDES_INDEX = {"H": 0, "D": 1, "A": 2}
+
+
+def test_threshold_rejects_all_ineligible_candidates():
+    df = market_frame()
+    df.loc[1, "date"] = pd.Timestamp("2023-01-14")
+    df = add_derived(df)
+    with pytest.raises(ValueError, match="minimum validation bet count"):
+        choose_threshold(df, min_bets=100, n_boot=50)
+
+
+def test_single_cluster_does_not_produce_false_precision():
+    with pytest.raises(ValueError, match="at least two independent"):
+        cluster_bootstrap_mean([1., -1.], ["same", "same"])

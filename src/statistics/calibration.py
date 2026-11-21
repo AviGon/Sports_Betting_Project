@@ -91,7 +91,6 @@ def figure(result, path):
         ax.plot([0, 1], [0, 1], color="0.55", linestyle="--", linewidth=1, label="Perfect calibration")
         for row in rows:
             if row["frequency_ci_low"] is not None:
-                # The model-based residual CI may not contain its estimate after clipping only in pathological bins.
                 ax.plot([row["mean_probability"]]*2, [row["frequency_ci_low"], row["frequency_ci_high"]], color="#27647b", alpha=.55)
         ax.scatter([r["mean_probability"] for r in rows], [r["observed_frequency"] for r in rows],
                    s=[12+np.sqrt(r["n"]) for r in rows], color="#27647b", zorder=3, label="Observed (95% CI)")

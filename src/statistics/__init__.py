@@ -1,1 +1,1 @@
-"""Ksheer's market statistics, without predictive modeling or backtests."""
+"""Market calibration, mispricing tests and return uncertainty."""

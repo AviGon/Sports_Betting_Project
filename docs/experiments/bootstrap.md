@@ -1,6 +1,6 @@
 # Historical bootstrap confidence intervals
 
-Strategy: `home_baseline`. These are percentile CIs for a historical mean return, distinct from B3's simulation of new match outcomes under a specified market model. Reuse `src.statistics.bootstrap.confidence_interval(matches, bets, method=..., n_paths=5000, seed=226)` with Person A's selection interface. Each row is one unit stake.
+Strategy: `home_baseline`. These are percentile CIs for a historical mean return, distinct from the Monte Carlo experiment's simulation of new match outcomes under a specified market model. Reuse `src.statistics.bootstrap.confidence_interval(matches, bets, method=..., n_paths=5000, seed=226)` with the shared selection interface. Each row is one unit stake.
 
 Resample with replacement the same number of units as observed:
 

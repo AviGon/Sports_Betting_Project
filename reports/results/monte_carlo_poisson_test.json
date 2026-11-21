@@ -1,0 +1,22 @@
+{
+  "n_bets": 1154,
+  "n_matches": 1154,
+  "n_paths": 10000,
+  "seed": 225,
+  "date_min": "2022-08-05",
+  "date_max": "2026-05-24",
+  "expected_roi": -0.05150708533621831,
+  "observed_roi": -0.08327556325823224,
+  "simulation_mean_roi": -0.05183833795493935,
+  "simulation_sd_roi": 0.052936486048583524,
+  "theoretical_sd_roi": 0.05272012399775338,
+  "mc_se_of_mean": 0.0005293648604858352,
+  "simulation_interval_95": [
+    -0.15356499133448873,
+    0.05559813691507797
+  ],
+  "observed_percentile_midrank": 28.05,
+  "upper_tail_p_value": 0.7195280471952805,
+  "upper_tail_mc_se": 0.004492298259183451,
+  "strategy": "poisson_test"
+}

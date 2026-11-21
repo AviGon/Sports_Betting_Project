@@ -1,0 +1,24 @@
+{
+  "python": "3.14.4",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "packages": {
+    "numpy": "2.5.5",
+    "pandas": "3.1.1",
+    "scipy": "1.18.1",
+    "matplotlib": "3.11.2",
+    "pytest": "9.2.0"
+  },
+  "input": "data/processed/epl_matches.csv",
+  "input_sha256": "20694f2dfc0c5c3c52128e1709e03f90ed0b888a360bfb6bf5b5bb22ded8dd52",
+  "input_lf_sha256": "20694f2dfc0c5c3c52128e1709e03f90ed0b888a360bfb6bf5b5bb22ded8dd52",
+  "bets_sha256": "ea9e480adc365b6b55e2f2ecef4cc4d63e19a0fa6f5aac00009e4b2b4f1e366b",
+  "arguments": {
+    "only": "returns",
+    "bets": "reports/modeling/results/selections_test.csv",
+    "label": "poisson_test",
+    "paths": 10000,
+    "bootstrap_paths": 5000,
+    "power_paths": 4000,
+    "seed": 225
+  }
+}

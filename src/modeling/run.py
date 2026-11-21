@@ -1,6 +1,6 @@
-"""Run all Track A experiments: python -m src.modeling.run
+"""Run the modeling and chronological betting pipeline: python -m src.modeling.run
 
-Order of operations enforces the pre-registration rules:
+Order of operations enforces the chronological selection rules:
 1. Poisson hyperparameters are chosen by log loss on TRAIN seasons only.
 2. The model is refitted walk-forward for every later match date.
 3. The EV threshold is chosen on VALIDATION seasons only and written to disk.
@@ -20,13 +20,15 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from src.data import dataset_sha256
+
 from . import backtest as bt
 from .data import DATA_PATH, SIDES, TEST, TRAIN, VALIDATION, load_matches
 from .evaluate import (PROB_COLS, calibration_table, compare_forecasters, log_loss,
                        naive_frequencies, per_match_scores)
 from .poisson import PoissonConfig, walk_forward
 
-OUT = Path("reports/track_a")
+OUT = Path("reports/modeling")
 XI_GRID = (0.0, 0.001, 0.002, 0.004)
 RIDGE_GRID = (0.5, 2.0, 8.0)
 
@@ -125,7 +127,8 @@ def figure_calibration(cal: pd.DataFrame, path: Path):
         ax.set_xlim(lo, hi), ax.set_ylim(lo, hi)
         ax.set_title({"H": "Home win", "D": "Draw", "A": "Away win"}[side], loc="left", fontsize=10)
         ax.set_xlabel("Mean forecast probability (decile bin)")
-    axes[0].set_ylabel("Observed frequency (95% Wilson CI)")
+    axes[0].set_ylabel("Observed frequency (95% CI)")
+    fig.suptitle("Held-out calibration · 2022–26 · whole-week bootstrap intervals", fontsize=10, y=1.04)
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=3, fontsize=8, bbox_to_anchor=(.5, -.06))
     fig.tight_layout()
@@ -175,7 +178,7 @@ def main(argv=None):
     parser.add_argument("--boot", type=int, default=5000, help="bootstrap resamples (default 5000)")
     parser.add_argument("--seed", type=int, default=2025)
     parser.add_argument("--skip-tuning", action="store_true",
-                        help="reuse hyperparameters saved in reports/track_a/results/poisson_config.json")
+                        help="reuse hyperparameters saved in reports/modeling/results/poisson_config.json")
     args = parser.parse_args(argv)
     res_dir, fig_dir = OUT / "results", OUT / "figures"
     res_dir.mkdir(parents=True, exist_ok=True)
@@ -185,40 +188,40 @@ def main(argv=None):
     cfg_path = res_dir / "poisson_config.json"
     if args.skip_tuning and cfg_path.exists():
         cfg = PoissonConfig(**json.loads(cfg_path.read_text(encoding="utf-8"))["config"])
-        print(f"A1: reusing {cfg}")
+        print(f"Poisson: reusing {cfg}")
     else:
-        print("A1: tuning Poisson hyperparameters on train seasons", TRAIN)
+        print("Poisson: tuning Poisson hyperparameters on train seasons", TRAIN)
         cfg, tuning = tune_hyperparameters(matches)
         tuning.to_csv(res_dir / "hyperparameter_search.csv", index=False)
         cfg_path.write_text(json.dumps({"config": cfg.__dict__, "selected_on": list(TRAIN),
                                         "criterion": "mean log loss"}, indent=2), encoding="utf-8")
-        print(f"A1: selected {cfg}")
+        print(f"Poisson: selected {cfg}")
 
-    print("A1: walk-forward predictions for", TRAIN[0], "to", TEST[-1])
+    print("Poisson: walk-forward predictions for", TRAIN[0], "to", TEST[-1])
     pred = walk_forward(matches, cfg, predict_seasons=TRAIN + VALIDATION + TEST)
-    pred.to_csv(res_dir / "predictions.csv", index=False, float_format="%.6f")
+    pred.to_csv(res_dir / "predictions.csv", index=False, float_format="%.17g")
 
     df = (matches.merge(pred, on="match_id").merge(naive_frequencies(matches), on="match_id")
           .sort_values("date").reset_index(drop=True))
 
-    print("A2: forecast comparison")
+    print("Forecasts: forecast comparison")
     evaluation = {}
     for name, seasons in (("train", TRAIN), ("validation", VALIDATION), ("test", TEST)):
         evaluation[name] = compare_forecasters(df[df.season.isin(seasons)], args.boot, args.seed)
     scores = per_match_scores(df).assign(season=df.season)
     evaluation["by_season"] = scores.groupby("season").mean().round(5).to_dict(orient="index")
     test = df[df.season.isin(TEST)]
-    cal = pd.concat([calibration_table(test, f) for f in ("poisson", "market")])
+    cal = pd.concat([calibration_table(test, f, n_boot=args.boot, seed=args.seed) for f in ("poisson", "market")])
     cal.to_csv(res_dir / "calibration_test.csv", index=False)
     (res_dir / "model_evaluation.json").write_text(json.dumps(evaluation, indent=2), encoding="utf-8")
 
-    print("A3: choosing EV threshold on validation seasons", VALIDATION)
+    print("Backtest: choosing EV threshold on validation seasons", VALIDATION)
     val = df[df.season.isin(VALIDATION)]
     tau, grid_val = bt.choose_threshold(val, n_boot=args.boot, seed=args.seed)
     (res_dir / "threshold_lock.json").write_text(json.dumps(
         {"tau": tau, "grid": list(bt.TAU_GRID), "min_validation_bets": bt.MIN_VALIDATION_BETS,
          "rule": "max validation ROI, ties -> smaller tau", "selected_on": list(VALIDATION)}, indent=2), encoding="utf-8")
-    print(f"A3: locked tau = {tau}")
+    print(f"Backtest: locked tau = {tau}")
     val_bets = bt.select_bets(val, tau)
     test_bets = bt.select_bets(test, tau)
     grid_test = pd.DataFrame([{"tau": t, **{k: v for k, v in bt.summarise(bt.select_bets(test, t), args.boot,
@@ -235,16 +238,17 @@ def main(argv=None):
         "threshold_grid_test_exploratory": grid_test.to_dict(orient="records"),
     }
     (res_dir / "backtest.json").write_text(json.dumps(backtest, indent=2, default=float), encoding="utf-8")
-    bt.selection_export(test_bets).to_csv(res_dir / "selections_test.csv", index=False, float_format="%.6f")
-    bt.selection_export(val_bets).to_csv(res_dir / "selections_validation.csv", index=False, float_format="%.6f")
+    bt.selection_export(test_bets).to_csv(res_dir / "selections_test.csv", index=False, float_format="%.17g")
+    bt.selection_export(val_bets).to_csv(res_dir / "selections_validation.csv", index=False, float_format="%.17g")
 
     print("Figures")
-    figure_scores(df, evaluation, fig_dir / "a2_forecast_scores.png")
-    figure_calibration(cal, fig_dir / "a2_calibration_test.png")
-    figure_backtest(val_bets, test_bets, grid_val, grid_test, tau, fig_dir / "a3_backtest.png")
+    figure_scores(df, evaluation, fig_dir / "forecast_scores.png")
+    figure_calibration(cal, fig_dir / "calibration_test.png")
+    figure_backtest(val_bets, test_bets, grid_val, grid_test, tau, fig_dir / "backtest.png")
 
     (res_dir / "run_metadata.json").write_text(json.dumps({
-        "input": str(DATA_PATH), "input_sha256": sha256(DATA_PATH), "seed": args.seed,
+        "input": DATA_PATH.as_posix(), "input_sha256": sha256(DATA_PATH),
+        "input_lf_sha256": dataset_sha256(DATA_PATH), "seed": args.seed,
         "bootstrap_resamples": args.boot, "python": sys.version.split()[0], "platform": platform.platform(),
         "numpy": np.__version__, "pandas": pd.__version__,
         "splits": {"train": TRAIN, "validation": VALIDATION, "test": TEST},

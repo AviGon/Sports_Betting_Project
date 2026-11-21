@@ -1,8 +1,8 @@
-"""Experiment A2: probabilistic forecast comparison.
+"""Probabilistic forecast comparison.
 
 Forecasters (all available before kick-off):
 * ``naive``   - empirical H/D/A frequencies of all earlier matches in the dataset
-* ``poisson`` - walk-forward Poisson model (A1)
+* ``poisson`` - walk-forward Poisson model
 * ``market``  - Bet365 pre-closing odds with the margin removed by normalisation
 
 Scores are proper scoring rules, i.e. expected losses minimised by the true
@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 from .data import SIDES
+from src.statistics.common import fdr_bh
 
 PROB_COLS = {
     "naive": ["p_naive_home", "p_naive_draw", "p_naive_away"],
@@ -66,7 +67,14 @@ def cluster_bootstrap_mean(values: np.ndarray, clusters: np.ndarray, n_boot: int
     unequal cluster sizes are handled correctly.
     """
     values = np.asarray(values, float)
-    codes, uniq = pd.factorize(np.asarray(clusters))
+    clusters = np.asarray(clusters)
+    if values.ndim != 1 or not len(values) or len(values) != len(clusters) or not np.isfinite(values).all() or pd.isna(clusters).any():
+        raise ValueError("Finite values and matching nonmissing clusters required")
+    if n_boot < 2 or not 0 < level < 1:
+        raise ValueError("Need at least two draws and a confidence level in (0,1)")
+    codes, uniq = pd.factorize(clusters)
+    if len(uniq) < 2:
+        raise ValueError("Need at least two independent resampling clusters")
     sums = np.bincount(codes, values, len(uniq))
     counts = np.bincount(codes, minlength=len(uniq)).astype(float)
     rng = np.random.default_rng(seed)
@@ -78,9 +86,10 @@ def cluster_bootstrap_mean(values: np.ndarray, clusters: np.ndarray, n_boot: int
         "ci_low": float(np.quantile(boot, a)),
         "ci_high": float(np.quantile(boot, 1 - a)),
         "boot_se": float(boot.std(ddof=1)),
-        # Percentile-bootstrap two-sided p-value for H0: mean = 0, floored at 1/n_boot.
-        "p_value_two_sided": float(min(1.0, max(2 * min((boot <= 0).mean(), (boot >= 0).mean()),
-                                                1.0 / n_boot))),
+        # Recenter draws under H0; the uncentered bootstrap estimates uncertainty
+        # around the observed mean, not a sampling distribution under mean = 0.
+        "p_value_two_sided": float((1 + (np.abs(boot-values.mean()) >= abs(values.mean())).sum()) / (n_boot+1)),
+        "p_value_method": "null-centered cluster bootstrap, absolute two-sided tail",
         "n": int(len(values)),
         "n_clusters": int(len(uniq)),
     }
@@ -97,16 +106,23 @@ def compare_forecasters(df: pd.DataFrame, n_boot: int = 5000, seed: int = 0) -> 
             diff = scores[f"{metric}_{a}"] - scores[f"{metric}_{b}"]
             result["differences"][f"{metric}:{a}-{b}"] = cluster_bootstrap_mean(
                 diff.to_numpy(), clusters, n_boot, seed)
+    adjusted = fdr_bh([r["p_value_two_sided"] for r in result["differences"].values()])
+    for row, q in zip(result["differences"].values(), adjusted):
+        row["q_value_bh"] = float(q)
+    result["comparison_family"] = "Six paired comparisons (two scores, three forecaster pairs); CIs are pointwise"
     return result
 
 
-def calibration_table(df: pd.DataFrame, forecaster: str, n_bins: int = 10) -> pd.DataFrame:
-    """One-vs-rest reliability bins per outcome with Wilson 95% intervals."""
+def calibration_table(df: pd.DataFrame, forecaster: str, n_bins: int = 10,
+                      n_boot: int = 5000, seed: int = 2025) -> pd.DataFrame:
+    """One-vs-rest reliability bins with whole-week bootstrap 95% intervals."""
     rows = []
     for k, side in enumerate(SIDES):
         p = df[PROB_COLS[forecaster][k]].to_numpy(float)
         hit = (df["y"].to_numpy() == k).astype(float)
         edges = np.unique(np.quantile(p, np.linspace(0, 1, n_bins + 1)))
+        if len(edges) == 1:
+            edges = np.array([edges[0], np.nextafter(edges[0], np.inf)])
         b = np.clip(np.searchsorted(edges, p, side="right") - 1, 0, len(edges) - 2)
         for i in range(len(edges) - 1):
             mask = b == i
@@ -114,10 +130,14 @@ def calibration_table(df: pd.DataFrame, forecaster: str, n_bins: int = 10) -> pd
             if n == 0:
                 continue
             obs = hit[mask].mean()
-            z = 1.959964
-            centre = (obs + z * z / (2 * n)) / (1 + z * z / n)
-            half = z * np.sqrt(obs * (1 - obs) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+            clusters = df.loc[mask, "matchday"].to_numpy()
+            n_clusters = pd.Series(clusters).nunique()
+            if n_clusters >= 2:
+                ci = cluster_bootstrap_mean(hit[mask], clusters, n_boot, seed)
+                low, high = ci["ci_low"], ci["ci_high"]
+            else:
+                low, high = np.nan, np.nan
             rows.append({"forecaster": forecaster, "side": side, "bin": i, "n": n,
                          "mean_pred": float(p[mask].mean()), "observed": float(obs),
-                         "ci_low": float(centre - half), "ci_high": float(centre + half)})
+                         "ci_low": float(low), "ci_high": float(high), "n_clusters": n_clusters})
     return pd.DataFrame(rows)

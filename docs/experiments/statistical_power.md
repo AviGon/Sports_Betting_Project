@@ -1,4 +1,4 @@
-# B4 — Statistical power and sample size
+# Statistical power and sample size
 
 Question: how many independent bets are required to detect hypothetical positive expected ROI?
 
@@ -6,9 +6,9 @@ Question: how many independent bets are required to detect hypothetical positive
 
 One-sided H0: mean net return ≤0; H1: mean net return δ>0. Significance α=.05, target power .80. Hypothetical δ = 0%, 1%, 2%, 3%, 5%; none is evidence of an actual edge. These calculations study detectability, not a trading strategy.
 
-Use the observed distribution of 4,180 historical Bet365 HOME prices as the empirical population of prospective odds. Prospective observations independently draw a price from this fixed empirical distribution and then one binary win/loss for one selected bet on a separate match. This differs from B3's fixed historical bet list with categorical outcomes. Grouping equal prices and using multinomial counts plus conditional binomial wins simulates this iid mixture exactly without enormous bet-by-path arrays. Mutually exclusive multiple bets are not modeled in this power experiment.
+Use the observed distribution of 4,180 historical Bet365 HOME prices as the empirical population of prospective odds. Prospective observations independently draw a price from this fixed empirical distribution and then one binary win/loss for one selected bet on a separate match. This differs from the Monte Carlo experiment's fixed historical bet list with categorical outcomes. Grouping equal prices and using multinomial counts plus conditional binomial wins simulates this iid mixture exactly without enormous bet-by-path arrays. Mutually exclusive multiple bets are not modeled in this power experiment.
 
-The break-even null win probability at odds o is q0=1/o, giving conditional mean ROI 0 and variance o−1. This **break-even null differs from B3's de-vigged market null**, which usually predicts negative ROI. For a hypothetical edge, use qδ(o)=expit(logit(1/o)+λδ), finding λδ so the empirical mean of o qδ(o)−1 equals δ. This respects [0,1] even for very short odds where simply (1+δ)/o would exceed 1. The alternative's return variance is σδ²=E[o² qδ(o)]−(1+δ)², including price-mixture variation in conditional means. σ0²=E[o−1]. These are plug-in odds-based design variances, not known population constants.
+The break-even null win probability at odds o is q0=1/o, giving conditional mean ROI 0 and variance o−1. This **break-even null differs from the Monte Carlo experiment's de-vigged market null**, which usually predicts negative ROI. For a hypothetical edge, use qδ(o)=expit(logit(1/o)+λδ), finding λδ so the empirical mean of o qδ(o)−1 equals δ. This respects [0,1] even for very short odds where simply (1+δ)/o would exceed 1. The alternative's return variance is σδ²=E[o² qδ(o)]−(1+δ)², including price-mixture variation in conditional means. σ0²=E[o−1]. These are plug-in odds-based design variances, not known population constants.
 
 For comparison, actual historical home-bet return sample variance: **1.877602**. Mean conditional variance under the de-vigged market probabilities: **1.886874**. They are reported separately rather than silently using a negative-ROI market null to test zero-ROI profitability.
 

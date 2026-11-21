@@ -1,4 +1,4 @@
-# B2 — Systematic market mispricing
+# Systematic market mispricing
 
 ## Hypotheses and fixed analysis plan
 

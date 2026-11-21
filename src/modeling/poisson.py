@@ -1,4 +1,4 @@
-"""Experiment A1: independent Poisson goals model fitted walk-forward.
+"""Independent Poisson goals model fitted walk-forward.
 
 Model (Maher 1982; Dixon & Coles 1997 time weighting):
 

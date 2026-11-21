@@ -8,10 +8,14 @@
     "matplotlib": "3.11.2",
     "pytest": "9.2.0"
   },
+  "input": "data/processed/epl_matches.csv",
   "input_sha256": "20694f2dfc0c5c3c52128e1709e03f90ed0b888a360bfb6bf5b5bb22ded8dd52",
+  "input_lf_sha256": "20694f2dfc0c5c3c52128e1709e03f90ed0b888a360bfb6bf5b5bb22ded8dd52",
+  "bets_sha256": null,
   "arguments": {
     "only": "all",
     "bets": null,
+    "label": null,
     "paths": 10000,
     "bootstrap_paths": 5000,
     "power_paths": 4000,

@@ -12,7 +12,7 @@
     "roi_boot_se": 0.0840035993726416,
     "hit_rate": 0.3070607553366174,
     "mean_odds": 4.816748768472906,
-    "mean_model_ev": 0.23066917323913902,
+    "mean_model_ev": 0.23066917323824718,
     "market_null_expected_roi": -0.05142515189534339,
     "per_bet_return_sd": 2.1337415671952575,
     "side_counts": {
@@ -33,7 +33,7 @@
     "roi_boot_se": 0.05215451458689204,
     "hit_rate": 0.2850953206239168,
     "mean_odds": 4.330580589254766,
-    "mean_model_ev": 0.19973573612013829,
+    "mean_model_ev": 0.19973573610694087,
     "market_null_expected_roi": -0.051507085336254886,
     "per_bet_return_sd": 1.7240978681979717,
     "side_counts": {
@@ -55,7 +55,7 @@
       "roi_boot_se": 0.08741792191429681,
       "hit_rate": 0.2847457627118644,
       "mean_odds": 4.347661016949153,
-      "mean_model_ev": 0.20395776603561708,
+      "mean_model_ev": 0.20395776604011154,
       "market_null_expected_roi": -0.05083848942154292,
       "per_bet_return_sd": 1.673985177983893,
       "side_counts": {
@@ -76,7 +76,7 @@
       "roi_boot_se": 0.12528642025658066,
       "hit_rate": 0.28368794326241137,
       "mean_odds": 4.451560283687944,
-      "mean_model_ev": 0.19366937494731687,
+      "mean_model_ev": 0.19366937489305558,
       "market_null_expected_roi": -0.051113189716193656,
       "per_bet_return_sd": 1.767933795594624,
       "side_counts": {
@@ -97,7 +97,7 @@
       "roi_boot_se": 0.09455395833515792,
       "hit_rate": 0.31338028169014087,
       "mean_odds": 4.157676056338028,
-      "mean_model_ev": 0.20063350099841895,
+      "mean_model_ev": 0.20063350099467095,
       "market_null_expected_roi": -0.05206426655037958,
       "per_bet_return_sd": 1.8137687708836585,
       "side_counts": {
@@ -118,7 +118,7 @@
       "roi_boot_se": 0.10649890356555228,
       "hit_rate": 0.2593856655290102,
       "mean_odds": 4.364539249146758,
-      "mean_model_ev": 0.20045331223016452,
+      "mean_model_ev": 0.2004533122295176,
       "market_null_expected_roi": -0.05201928634269134,
       "per_bet_return_sd": 1.6451174073109451,
       "side_counts": {

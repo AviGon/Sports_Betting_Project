@@ -1,0 +1,29 @@
+{
+  "input": "data/processed/epl_matches.csv",
+  "input_sha256": "20694f2dfc0c5c3c52128e1709e03f90ed0b888a360bfb6bf5b5bb22ded8dd52",
+  "input_lf_sha256": "20694f2dfc0c5c3c52128e1709e03f90ed0b888a360bfb6bf5b5bb22ded8dd52",
+  "seed": 2025,
+  "bootstrap_resamples": 5000,
+  "python": "3.14.4",
+  "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "numpy": "2.5.5",
+  "pandas": "3.1.1",
+  "splits": {
+    "train": [
+      "2016-17",
+      "2017-18",
+      "2018-19",
+      "2019-20"
+    ],
+    "validation": [
+      "2020-21",
+      "2021-22"
+    ],
+    "test": [
+      "2022-23",
+      "2023-24",
+      "2024-25",
+      "2025-26"
+    ]
+  }
+}

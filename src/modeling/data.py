@@ -1,4 +1,4 @@
-"""Loading the shared dataset and the chronological split used by Track A.
+"""Loading the shared dataset and the chronological forecasting splits.
 
 The split is fixed in code before any test-season result is inspected:
 
@@ -14,7 +14,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-DATA_PATH = Path("data/processed/epl_matches.csv")
+from src.data import MATCHES_PATH
+from src.data.prepare import validate
+
+DATA_PATH = MATCHES_PATH
 SIDES = ("H", "D", "A")
 SIDE_NAMES = {"H": "home", "D": "draw", "A": "away"}
 
@@ -46,6 +49,7 @@ def load_matches(path: Path | str = DATA_PATH) -> pd.DataFrame:
     df = pd.read_csv(path, usecols=cols)
     df["date"] = pd.to_datetime(df["date"])
     df = df.sort_values(["date", "kickoff_time", "match_id"], na_position="first").reset_index(drop=True)
+    validate(df)
     return add_derived(df)
 
 
